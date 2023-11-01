@@ -11,9 +11,13 @@ from time import sleep
 
 start = time.perf_counter()
 
+# contemplating whether to do one client and do all requests thru that or to create a new client every time
+# ok i've decided.
+
 i = discord.Intents().all()
 client = discord.Client(intents=i)
 t = app_commands.CommandTree(client)
+gd_client = gd.Client()
 
 print("YAGDDB - Yet Another Geometry Dash Discord Bot")
 
@@ -47,6 +51,22 @@ async def get_owner(guild_id : int) -> discord.Member:
 @t.command(name="test", guild=discord.Object(id=1155489454031654943))
 async def test(interaction):
     await interaction.response.send_message("pong uwu")
+
+@t.command(name="daily", guild=discord.Object(id=1155489454031654943))
+async def daily(interaction):
+    try:
+        d = await gd_client.get_daily()
+    except:
+        return await interaction.response.send_message("Daily level not found.")
+    
+    e = (
+        discord.Embed(colour=0x00C9FF)
+        .add_field(name="Current Daily", value="{0} ({1})".format(d.name, d.id))
+        .add_field(name="Rating", value="{0} ({1})".format(d.stars, d.difficulty.name))
+        .set_footer(text="Creator: {0}".format(d.creator.name))
+    )
+
+    await interaction.response.send_message(embed=e)
 
 
 client.run(yagddb.config["token"])
