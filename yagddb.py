@@ -58,7 +58,7 @@ def create_level_embed(level : gd.Level) -> discord.Embed:
         .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(level.stars, ld_name))
         .add_field(name="Stats", value="<:Share:1166362299179745422>: {0}\n<:Fake_Spike:1169611005098205204>: {1}".format(level.downloads, level.object_count), inline=False)
         .add_field(name="Song", value="{0} by {1} ([Link]({2}))".format(level.song.name, song_author, level.song.url), inline=False)
-        .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text=": {0}".format(level.creator.name))
+        .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text="{0}".format(level.creator.name))
     )
 
     return e
