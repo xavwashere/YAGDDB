@@ -89,7 +89,9 @@ async def on_ready():
     perf = time.perf_counter() - start
     # print success and start presence
     print("SUCCESS: Connected to Discord API and synced commands in {0} seconds".format(perf))
-    change_presence.start()
+
+    if not change_presence.is_running:
+        change_presence.start()
 
 # func that finds the guild owner (might not be used)
 async def get_owner(guild_id : int) -> discord.Member:
@@ -137,6 +139,34 @@ async def search_user(interaction, user : str):
     stats = search.statistics
     levels = await search.get_levels()
 
+    await interaction.response.defer()
+    await asyncio.sleep(0)
+
+    username = search.name
+
+    is_mod = False
+    is_elder = False
+
+    acc_id = search.account_id
+
+    data = {
+        "secret": "Wmfd2893gb7",
+        "targetAccountID": acc_id
+    }
+
+    resp = iter(str.split(requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers={"User-Agent": ""}).text, ':'))
+    resp = dict(zip(resp, resp))
+    mod_level = resp["49"]
+
+    if mod_level == "1":
+        is_mod = True
+        username += " <:Moderator:1166362417266180156>"
+
+    elif mod_level == "2":
+        is_elder = True
+        username += " <:SeniorModerator:1166362419048755241>"
+
+
     if levels:
         r = levels[0]
 
@@ -146,14 +176,16 @@ async def search_user(interaction, user : str):
         name = "User has no levels"
         id = "N/A"
 
+
+
     e = (
         discord.Embed(colour=0x00C9FF)
-        .add_field(name="Name", value="{0} (ID: {1})".format(search.name, search.account_id), inline=False)
+        .add_field(name="Name", value="{0} (ID: {1})".format(username, search.account_id), inline=False)
         .add_field(name="Stats", value="<:Star:1166360223859101737>: {0}\n<:Diamond:1166362286496153690>: {1}\n<:Demon:1169589936505229312>: {2}\n<:Secret_Coin:1166362293660025064>: {3}\n<:Silver_Coin:1166362296159834202>: {4}\n<:Creator_Point:1169589714110644295>: {5}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points), inline=False)
         .add_field(name="Most Recent Level", value="{0} ({1})".format(name, id), inline=False)
 
     )
-    await interaction.response.send_message(embed=e)
+    await interaction.followup.send(embed=e)
 
 @search_group.command(name="level", description="Search for a level")
 async def search_level(interaction, level : str):
