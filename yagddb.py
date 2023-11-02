@@ -33,6 +33,24 @@ gd_client = gd.Client()
 # useless print function
 print("YAGDDB - Yet Another Geometry Dash Discord Bot")
 
+def create_level_embed(level : gd.Level):
+    ld_name = str.replace(level.difficulty.name, '_', ' ').lower().split()
+    ld_name = list(map(str.capitalize, ld_name))
+    ld_name = "{0} {1}".format(ld_name[0], ld_name[1])
+
+    song_author = level.song.artist
+        
+    e = (
+        discord.Embed(colour=0xFF1E27)
+        .add_field(name="Name", value=level.name)
+        .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(level.stars, ld_name))
+        .add_field(name="Stats", value="<:Share:1166362299179745422>: {0}\n<:Fake_Spike:1169611005098205204>: {1}".format(level.downloads, level.object_count), inline=False)
+        .add_field(name="Song", value="{0} by {1} ([Link]({2}))".format(level.song.name, song_author, level.song.url), inline=False)
+        .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text=": {0}".format(level.creator.name))
+    )
+
+    return e
+
 # func that changes the bot's presence every 10 seconds
 @tasks.loop(seconds=10)
 async def change_presence():
@@ -83,16 +101,7 @@ async def daily(interaction):
     except:
         return await interaction.response.send_message("Daily level not found.")
     
-    # replace _ with whitespace and pretty it up a lil
-    dd_name = str.replace(d.difficulty.name, '_', ' ').lower().capitalize()
-    
-    # create embed and send it
-    e = (
-        discord.Embed(colour=0x00C9FF)
-        .add_field(name="Current Daily", value="{0} ({1})".format(d.name, d.id))
-        .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(d.stars, dd_name))
-        .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text=": {0}".format(d.creator.name))
-    )
+    e = create_level_embed(d)
 
     await interaction.response.send_message(embed=e)
 
@@ -104,17 +113,7 @@ async def weekly(interaction):
     except:
         return await interaction.response.send_message("Weekly level not found.")
     
-    # extremely bad code that removes the _, and capitalizes the first letter of each word
-    wd_name = str.replace(w.difficulty.name, '_', ' ').lower().split()
-    wd_name = list(map(str.capitalize, wd_name))
-    wd_name = "{0} {1}".format(wd_name[0], wd_name[1])
-    
-    e = (
-        discord.Embed(colour=0x00C9FF)
-        .add_field(name="Current Weekly", value="{0} ({1})".format(w.name, w.id))
-        .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(w.stars, wd_name))
-        .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text=": {0}".format(w.creator.name))
-    )
+    e = create_level_embed(w)
 
     await interaction.response.send_message(embed=e)
 
@@ -167,6 +166,7 @@ async def search_level(interaction, level : str):
             .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(level.stars, ld_name))
             .add_field(name="Stats", value="<:Share:1166362299179745422>: {0}\n<:Fake_Spike:1169611005098205204>: {1}".format(level.downloads, level.object_count), inline=False)
             .add_field(name="Song", value="{0} by {1} ([Link]({2}))".format(level.song.name, song_author, level.song.url), inline=False)
+            .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text=": {0}".format(level.creator.name))
         )
 
         await interaction.followup.send(embed=e)
