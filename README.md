@@ -15,7 +15,7 @@ YAGDDB has a couple of cool features:
 # Commands
 
 - /daily - Shows the current daily level (uses `create_level_embed()`).
-- /weekly - Shows the current daily level (uses `create_level_embed`).
+- /weekly - Shows the current daily level (uses `create_level_embed()`).
 - /search level - Searches for a level with the specified level name/ID.
 - /search user - Searches for a user with the specified username/ID.
 - /demonlist - Shows the top 10 levels on the Demonlist (https://pointercrate.com).
