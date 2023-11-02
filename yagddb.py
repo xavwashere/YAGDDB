@@ -48,7 +48,7 @@ print("YAGDDB - Yet Another Geometry Dash Discord Bot")
 def create_level_embed(level : gd.Level) -> discord.Embed:
     ld_name = str.replace(level.difficulty.name, '_', ' ').lower().split()
     ld_name = list(map(str.capitalize, ld_name))
-    ld_name = "{0} {1}".format(ld_name[0], ld_name[1])
+    ld_name = "{0} {1}".format(ld_name[0], ld_name[1]) if len(ld_name) > 1 else ld_name[0]
 
     song_author = level.song.artist
         
@@ -143,7 +143,9 @@ async def search_user(interaction, user : str):
 
         id = r.id
         name = r.name
-        downloads = r.downloads
+    else:
+        name = "User has no levels"
+        id = "N/A"
 
     e = (
         discord.Embed(colour=0x00C9FF)
@@ -164,11 +166,13 @@ async def search_level(interaction, level : str):
     if search:
         level = search[0]
         await interaction.response.defer()
-        await asyncio.sleep(1)
+        await asyncio.sleep(0)
 
         e = create_level_embed(level)
 
         await interaction.followup.send(embed=e)
+    else:
+        await interaction.followup.send("Level not found.")
 
 @t.command(name="demonlist", description="Show the top 10 demonlist levels", guild=discord.Object(id=1155489454031654943))
 async def demonlist(interaction):
