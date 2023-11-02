@@ -14,8 +14,6 @@ import random
 import time
 import asyncio
 import requests
-import json
-
 # get the starting time
 start = time.perf_counter()
 
@@ -33,6 +31,14 @@ async def get_demon_list(limit=10):
     params = "listed/?limit={0}".format(limit)
 
     res = requests.get("{0}demons/{1}".format(pointercrate, params)).json()
+    # r = json.loads(res)
+    return res
+
+async def get_player_list(limit=10):
+    pointercrate = "https://pointercrate.com/api/v1/"
+    params = "?limit={0}".format(limit)
+
+    res = requests.get("{0}players/ranking/{1}".format(pointercrate, params)).json()
     # r = json.loads(res)
     return res
 
@@ -178,6 +184,19 @@ async def demonlist(interaction):
     e.add_field(name="JSON", value="[Download JSON](https://pointercrate.com/api/v2/demons/listed/?limit=10)")
     await interaction.response.send_message(embed=e)
         
+@t.command(name="leaderboard", description="Show the top 10 demonlist players", guild=discord.Object(id=1155489454031654943))
+async def playerlist(interaction):
+    player_list = await get_player_list()
+
+
+    
+    e = discord.Embed(colour=0x00C9FF)
+
+    for pos in player_list:
+        e.add_field(name="{0}. {1}".format(pos["rank"], pos["name"]), value="Points: {0}\nNationality: {1} ({2})".format(round(pos["score"]), pos["nationality"]["nation"], pos["nationality"]["country_code"]), inline=False)
+    e.add_field(name="JSON", value="[Download JSON](https://pointercrate.com/api/v1/players/ranking?limit=10)")
+    await interaction.response.send_message(embed=e)
+    
 
 t.add_command(search_group)
 client.run(yagddb.config["token"])
