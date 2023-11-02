@@ -143,7 +143,7 @@ async def search_user(interaction, user : str):
         discord.Embed(colour=0x00C9FF)
         .add_field(name="Name", value="{0} (ID: {1})".format(search.name, search.account_id), inline=False)
         .add_field(name="Stats", value="<:Star:1166360223859101737>: {0}\n<:Diamond:1166362286496153690>: {1}\n<:Demon:1169589936505229312>: {2}\n<:Secret_Coin:1166362293660025064>: {3}\n<:Silver_Coin:1166362296159834202>: {4}\n<:Creator_Point:1169589714110644295>: {5}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points), inline=False)
-        .add_field(name="Most Recent Level", value="{0} ({1})\n<:Share:1166362299179745422>: {2}".format(name, id, downloads), inline=False)
+        .add_field(name="Most Recent Level", value="{0} ({1})".format(name, id), inline=False)
 
     )
     await interaction.response.send_message(embed=e)
