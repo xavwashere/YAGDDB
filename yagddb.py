@@ -73,10 +73,13 @@ async def change_presence():
         "2.2 come out",
         "xavvvv sleep",
         "DemonGDPS",
-        "{0} servers".format(server_count)
+        "{0} servers".format(server_count),
+        "Zoink verify a top 1",
+        "Tidal Wave not be rated",
+        "Avernus be top 1"
     ])
     # randomly pick the next presence
-    for x in range(random.randint(1, 4)):
+    for x in range(random.randint(1, 7)):
         x = next(watch)
     # actually change the presence
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=x))
@@ -90,7 +93,7 @@ async def on_ready():
     # print success and start presence
     print("SUCCESS: Connected to Discord API and synced commands in {0} seconds".format(perf))
 
-    if not change_presence.is_running:
+    if not change_presence.is_running():
         change_presence.start()
 
 # func that finds the guild owner (might not be used)
