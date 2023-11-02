@@ -7,16 +7,14 @@ import discord
 from discord import app_commands
 from discord.ext import tasks
 import gd
+
 import yagddb
 
 import random
-
 import time
-from time import sleep
-
-import itertools
-
 import asyncio
+import requests
+import json
 
 # get the starting time
 start = time.perf_counter()
@@ -30,10 +28,18 @@ client = discord.Client(intents=i)
 t = app_commands.CommandTree(client)
 gd_client = gd.Client()
 
+async def get_demon_list(limit=10):
+    pointercrate = "https://pointercrate.com/api/v2/"
+    params = "listed/?limit={0}".format(limit)
+
+    res = requests.get("{0}demons/{1}".format(pointercrate, params)).json()
+    # r = json.loads(res)
+    return res
+
 # useless print function
 print("YAGDDB - Yet Another Geometry Dash Discord Bot")
 
-def create_level_embed(level : gd.Level):
+def create_level_embed(level : gd.Level) -> discord.Embed:
     ld_name = str.replace(level.difficulty.name, '_', ' ').lower().split()
     ld_name = list(map(str.capitalize, ld_name))
     ld_name = "{0} {1}".format(ld_name[0], ld_name[1])
@@ -106,7 +112,7 @@ async def daily(interaction):
     await interaction.response.send_message(embed=e)
 
 # i ain't doin all those comments again
-@t.command(name="weekly", description="Gets the current weekly level.",guild=discord.Object(id=1155489454031654943))
+@t.command(name="weekly", description="Gets the current weekly level.", guild=discord.Object(id=1155489454031654943))
 async def weekly(interaction):
     try:
         w = await gd_client.get_weekly()
@@ -135,9 +141,9 @@ async def search_user(interaction, user : str):
 
     e = (
         discord.Embed(colour=0x00C9FF)
-        .add_field(name="Name", value="{0} (ID: {1})".format(search.name, search.account_id))
-        .add_field(name="Stats", value="<:Star:1166360223859101737>: {0}\n<:Diamond:1166362286496153690>: {1}\n<:Demon:1169589936505229312>: {2}\n<:Secret_Coin:1166362293660025064>: {3}\n<:Silver_Coin:1166362296159834202>: {4}\n<:Creator_Point:1169589714110644295>: {5}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points))
-        .add_field(name="Most Recent Level", value="{0} ({1})\n<:Share:1166362299179745422>: {2}".format(name, id, downloads))
+        .add_field(name="Name", value="{0} (ID: {1})".format(search.name, search.account_id), inline=False)
+        .add_field(name="Stats", value="<:Star:1166360223859101737>: {0}\n<:Diamond:1166362286496153690>: {1}\n<:Demon:1169589936505229312>: {2}\n<:Secret_Coin:1166362293660025064>: {3}\n<:Silver_Coin:1166362296159834202>: {4}\n<:Creator_Point:1169589714110644295>: {5}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points), inline=False)
+        .add_field(name="Most Recent Level", value="{0} ({1})\n<:Share:1166362299179745422>: {2}".format(name, id, downloads), inline=False)
 
     )
     await interaction.response.send_message(embed=e)
@@ -154,22 +160,24 @@ async def search_level(interaction, level : str):
         await interaction.response.defer()
         await asyncio.sleep(1)
 
-        ld_name = str.replace(level.difficulty.name, '_', ' ').lower().split()
-        ld_name = list(map(str.capitalize, ld_name))
-        ld_name = "{0} {1}".format(ld_name[0], ld_name[1])
-
-        song_author = level.song.artist
-        
-        e = (
-            discord.Embed(colour=0xFF1E27)
-            .add_field(name="Name", value=level.name)
-            .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(level.stars, ld_name))
-            .add_field(name="Stats", value="<:Share:1166362299179745422>: {0}\n<:Fake_Spike:1169611005098205204>: {1}".format(level.downloads, level.object_count), inline=False)
-            .add_field(name="Song", value="{0} by {1} ([Link]({2}))".format(level.song.name, song_author, level.song.url), inline=False)
-            .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text=": {0}".format(level.creator.name))
-        )
+        e = create_level_embed(level)
 
         await interaction.followup.send(embed=e)
+
+@t.command(name="demonlist", description="Show the top 10 demonlist levels", guild=discord.Object(id=1155489454031654943))
+async def demonlist(interaction):
+    demonlist = await get_demon_list()
+
+
+    
+    e = discord.Embed(colour=0x00C9FF)
+
+    for pos in demonlist:
+        e.add_field(name="{0}. {1}".format(pos["position"], pos["name"]), value="Verifier: {0}\nCreator: {1}\n[Verification]({2})".format(pos["verifier"]["name"], pos["publisher"]["name"], pos["video"]), inline=False)
+    
+    e.add_field(name="JSON", value="[Download JSON](https://pointercrate.com/api/v2/demons/listed/?limit=10)")
+    await interaction.response.send_message(embed=e)
+        
 
 t.add_command(search_group)
 client.run(yagddb.config["token"])
