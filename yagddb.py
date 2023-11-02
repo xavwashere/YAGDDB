@@ -17,16 +17,13 @@ import requests
 # get the starting time
 start = time.perf_counter()
 
-# contemplating whether to do one client and do all requests thru that or to create a new client every time
-# ok i've decided.
-
 # client initialization (discord and gd)
 i = discord.Intents().all()
 client = discord.Client(intents=i)
 t = app_commands.CommandTree(client)
 gd_client = gd.Client()
 
-async def get_demon_list(limit=10):
+async def get_demon_list(limit : int = 10) -> dict:
     pointercrate = "https://pointercrate.com/api/v2/"
     params = "listed/?limit={0}".format(limit)
 
@@ -34,7 +31,7 @@ async def get_demon_list(limit=10):
     # r = json.loads(res)
     return res
 
-async def get_player_list(limit=10):
+async def get_player_list(limit : int = 10) -> dict:
     pointercrate = "https://pointercrate.com/api/v1/"
     params = "?limit={0}".format(limit)
 
@@ -42,16 +39,13 @@ async def get_player_list(limit=10):
     # r = json.loads(res)
     return res
 
-# useless print function
-print("YAGDDB - Yet Another Geometry Dash Discord Bot")
-
 def create_level_embed(level : gd.Level) -> discord.Embed:
     ld_name = str.replace(level.difficulty.name, '_', ' ').lower().split()
     ld_name = list(map(str.capitalize, ld_name))
     ld_name = "{0} {1}".format(ld_name[0], ld_name[1]) if len(ld_name) > 1 else ld_name[0]
 
     song_author = level.song.artist
-        
+
     e = (
         discord.Embed(colour=0xFF1E27)
         .add_field(name="Name", value=level.name)
@@ -62,6 +56,11 @@ def create_level_embed(level : gd.Level) -> discord.Embed:
     )
 
     return e
+
+# useless print function
+print("YAGDDB - Yet Another Geometry Dash Discord Bot")
+
+
 
 # func that changes the bot's presence every 10 seconds
 @tasks.loop(seconds=10)
@@ -85,7 +84,7 @@ async def change_presence():
 @client.event
 async def on_ready():
     # sync cmd tree
-    await t.sync(guild=discord.Object(id=1155489454031654943))
+    await t.sync()
     # performance thing
     perf = time.perf_counter() - start
     # print success and start presence
@@ -97,15 +96,15 @@ async def get_owner(guild_id : int) -> discord.Member:
     guild = client.get_guild(guild_id)
     return guild.owner
 
-search_group = app_commands.Group(name="search", description="Search for something (users or levels)", guild_ids=[1155489454031654943])
+search_group = app_commands.Group(name="search", description="Search for something (users or levels)")
 
 # uwu
-@t.command(name="ping", guild=discord.Object(id=1155489454031654943))
+@t.command(name="ping")
 async def ping(interaction):
     await interaction.response.send_message("pong uwu")
 
 # function that implements the daily command
-@t.command(name="daily", description="Gets the current daily level.",guild=discord.Object(id=1155489454031654943))
+@t.command(name="daily", description="Gets the current daily level.",)
 async def daily(interaction):
     # error handling? what's error handling? i just wrap all of my code in a try catch -a person who wraps all their code in a try catch
     try:
@@ -118,7 +117,7 @@ async def daily(interaction):
     await interaction.response.send_message(embed=e)
 
 # i ain't doin all those comments again
-@t.command(name="weekly", description="Gets the current weekly level.", guild=discord.Object(id=1155489454031654943))
+@t.command(name="weekly", description="Gets the current weekly level.")
 async def weekly(interaction):
     try:
         w = await gd_client.get_weekly()
@@ -172,9 +171,67 @@ async def search_level(interaction, level : str):
 
         await interaction.followup.send(embed=e)
     else:
-        await interaction.followup.send("Level not found.")
+        await interaction.response.send_message("Level not found.")
+    
+@t.command(name="checkmod", description="Check if someone has moderator permissions")
+async def check_mod(interaction, username : str):
 
-@t.command(name="demonlist", description="Show the top 10 demonlist levels", guild=discord.Object(id=1155489454031654943))
+
+    if username is None:
+        await interaction.response.send_message("No user chosen. Please choose a user to check before running this command")
+        return
+    
+    user = await gd_client.search_user(username)
+
+    if not user:
+        await interaction.response.send_message("Invalid user.")
+        return
+    
+    await interaction.response.defer()
+    await asyncio.sleep(0)
+       
+    is_mod = False
+    is_elder = False
+
+    id = user.account_id
+
+    data = {
+        "secret": "Wmfd2893gb7",
+        "targetAccountID": id
+    }
+
+    resp = iter(str.split(requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers={"User-Agent": ""}).text, ':'))
+    resp = dict(zip(resp, resp))
+    mod_level = resp["49"]
+
+    if mod_level == "1":
+        is_mod = True
+    elif mod_level == "2":
+        is_elder = True
+    
+
+
+    if is_mod:
+        e = (
+            discord.Embed(colour=0x00C9FF)
+            .add_field(name=user.name + " <:Moderator:1166362417266180156>", value="User is a moderator.")
+        )
+        await interaction.followup.send(embed=e)
+    elif is_elder:
+        e = (
+            discord.Embed(colour=0x00C9FF)
+            .add_field(name=user.name + " <:SeniorModerator:1166362419048755241>", value="User is an elder moderator.")
+        )
+        await interaction.followup.send(embed=e)
+    elif not is_mod and not is_elder:
+        e = (
+            discord.Embed(colour=0x00C9FF)
+            .add_field(name=user.name, value="User is not a moderator.")
+        )
+        await interaction.followup.send(embed=e)
+    
+
+@t.command(name="demonlist", description="Show the top 10 demonlist levels")
 async def demonlist(interaction):
     demonlist = await get_demon_list()
 
@@ -188,7 +245,7 @@ async def demonlist(interaction):
     e.add_field(name="JSON", value="[Download JSON](https://pointercrate.com/api/v2/demons/listed/?limit=10)")
     await interaction.response.send_message(embed=e)
         
-@t.command(name="leaderboard", description="Show the top 10 demonlist players", guild=discord.Object(id=1155489454031654943))
+@t.command(name="leaderboard", description="Show the top 10 demonlist players")
 async def playerlist(interaction):
     player_list = await get_player_list()
 

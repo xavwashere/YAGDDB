@@ -2,3 +2,4 @@ __pycache__
 yagddb/__pycache__
 .gd
 yagddb/json/*
+test.py
