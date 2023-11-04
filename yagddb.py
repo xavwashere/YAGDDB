@@ -284,6 +284,17 @@ async def search_user(interaction, user : str):
     twitter = search.socials.twitter
     twitch = search.socials.twitch
 
+
+    comment = str.replace(search.states.comment_state.name, "_", " ").lower().split()
+    comment = " ".join(w.capitalize() for w in comment)
+
+    message = str.replace(search.states.message_state.name, "_", " ").lower().split()
+    message = " ".join(w.capitalize() for w in message)
+
+    friends = str.replace(search.states.friend_request_state.name, "_", " ").lower().split()
+    friends = " ".join(w.capitalize() for w in friends)
+
+
     if not os.path.exists("icons/{0}{1}.png".format(search.id, search.name)):
         icons = await search.cosmetics.generate_full_async()
         icons.save("icons/{0}{1}.png".format(search.id, search.name))
@@ -316,6 +327,7 @@ async def search_user(interaction, user : str):
         .add_field(name="Name", value="{0} (ID: {1} | Account ID: {2})".format(username, search.id, search.account_id), inline=False)
         .add_field(name="Stats", value="<:Star:1166360223859101737> {0}\n<:Diamond:1166362286496153690> {1}\n<:Demon:1169589936505229312> {2}\n<:Secret_Coin:1166362293660025064> {3}\n<:Silver_Coin:1166362296159834202> {4}\n<:Creator_Point:1169589714110644295> {5}\n<:Rank:1170362250570236004> {6}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points, rank), inline=False)
         .add_field(name="Socials", value="<:YouTube:1170315574803451904> {0}\n<:Twitter:1170315580205699112> {1}\n<:Twitch:1170315578964193280> {2}".format(youtube, twitter, twitch))
+        .add_field(name="Other", value="Friend Request Permissions: {0}\nComment History Permissions: {1}\nMessage Permissions: {2}".format(friends, comment, message), inline=False)
         .add_field(name="Most Recent Level", value="{0} ({1})".format(name, id), inline=False)
         .set_image(url="attachment://{0}{1}.png".format(search.id, search.name))
     )
