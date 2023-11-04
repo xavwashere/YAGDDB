@@ -65,6 +65,7 @@ class MusicBtns(discord.ui.View):
             for x in os.listdir("music/"):
                 p = os.path.join("music/", x)
                 os.remove(p)
+            await interaction.response.send_message("Disconnected from VC.")
 
 @gd_client.event
 async def on_rate(level : gd.Level):
