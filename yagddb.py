@@ -301,7 +301,12 @@ async def search_user(interaction, user : str):
         
     d_icons = discord.File("icons/{0}{1}.png".format(search.id, search.name), filename="{0}{1}.png".format(search.id, search.name))
     
-
+    try:
+        youtube.replace(" ", "")
+        twitter.replace(" ", "")
+        twitch.replace(" ", "")
+    except:
+        pass
     if youtube is None:
         youtube = "None"
     else:
@@ -478,11 +483,14 @@ async def music(interaction : discord.Interaction, id : int):
             await cv.disconnect()
         await asyncio.sleep(1)
     await cv.disconnect()
+    
+
+t.add_command(search_group)
+try:
+    client.run(yagddb.config["token"])
+finally:
     for x in os.listdir("music/"):
         p = os.path.join("music/", x)
         os.remove(p)
-
-t.add_command(search_group)
-client.run(yagddb.config["token"])
 gd_client.listen_for_rate()
 gd_client.create_controller().run()
