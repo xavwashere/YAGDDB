@@ -450,15 +450,13 @@ async def music(interaction : discord.Interaction, id : int):
     except:
         await interaction.response.send_message("Invalid song ID.", ephemeral=True)
     link = music.download_url
-    cv = await channel.connect()
-    await interaction.response.send_message("Joined voice channel! Controls:", view=MusicBtns())
-
+    await interaction.response.send_message("Downloading {0} from Newgrounds...".format(music.name))
     d = requests.get(link)
     print(link)
     with open("music/{0}.mp3".format(id), "wb") as f:
         f.write(d.content)
-    
-
+    cv = await channel.connect()
+    await interaction.followup.send("Joined voice channel! Controls:", view=MusicBtns())
 
     cv.play(discord.FFmpegPCMAudio("music/{0}.mp3".format(id)))
     cv.is_playing()
