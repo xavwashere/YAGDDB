@@ -55,6 +55,29 @@ class SettingsBtns(discord.ui.View):
 class MusicBtns(discord.ui.View):
     def __init__(self):
         super().__init__()
+
+    @discord.ui.button(label="Pause", style=discord.ButtonStyle.blurple)
+    async def pause_music(self, interaction : discord.Interaction, button):
+        guild = interaction.guild
+        vc = guild.voice_client
+        paused = vc.is_paused()
+        if not paused:
+            vc.pause()
+            await interaction.response.send_message("Song paused.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Song is already paused.", ephemeral=True)
+    
+    @discord.ui.button(label="Resume", style=discord.ButtonStyle.blurple)
+    async def resume_music(self, interaction : discord.Interaction, button):
+        guild = interaction.guild
+        vc = guild.voice_client
+        paused = vc.is_paused()
+        if paused:
+            vc.resume()
+            await interaction.response.send_message("Song resumed.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Song is already playing.", ephemeral=True)
+
     
     @discord.ui.button(label="End", style=discord.ButtonStyle.blurple)
     async def end_music(self, interaction : discord.Interaction, button):
@@ -62,11 +85,9 @@ class MusicBtns(discord.ui.View):
         vc = discord.utils.get(client.voice_clients, guild=guild)
         if vc.is_connected():
             await vc.disconnect()
-            for x in os.listdir("music/"):
-                p = os.path.join("music/", x)
-                os.remove(p)
             await interaction.response.send_message("Disconnected from VC.")
-
+        else:
+            await interaction.response.send_message("The bot isn't playing music right now!")
 @gd_client.event
 async def on_rate(level : gd.Level):
     webhooks = []
@@ -478,7 +499,7 @@ async def music(interaction : discord.Interaction, id : int):
     cv.play(discord.FFmpegPCMAudio("music/{0}.mp3".format(id)))
     cv.is_playing()
 
-    while cv.is_playing():
+    while cv.is_connected():
         if len(channel.members) < 2:
             await cv.disconnect()
         await asyncio.sleep(1)
