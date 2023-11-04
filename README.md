@@ -10,6 +10,7 @@ YAGDDB has a couple of cool features:
 - Demon list
 - Player demon list
 - Daily and weekly commands
+- Playing music from Newgrounds
 - ...and many others!
 
 # Commands
@@ -22,6 +23,7 @@ YAGDDB has a couple of cool features:
 - /leaderboard - Shows the top 10 players on the Demonlist leaderboard (https://pointercrate.com)
 - /checkmod <name> - Checks the specified user's moderator status.
 - /settings - Allows you to change the settings of the bot, as well as add a webhook that is triggered when a level is rated (currently broken)
+- /music <newgrounds id> - Plays a song from Newgrounds according to the specified ID.
 
 # Running
 

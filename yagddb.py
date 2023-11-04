@@ -75,7 +75,7 @@ async def on_rate(level : gd.Level):
         webhooks.append(p for x in p)
     for x in webhooks:
         w = discord.Webhook.from_url(x)
-        w.send(content="New daily level!", embed=create_level_embed(level), username="Geometry Dash", avatar_url="https://upload.wikimedia.org/wikipedia/en/3/35/Geometry_Dash_Logo.PNG")
+        w.send(content="New rated level!", embed=create_level_embed(level), username="Geometry Dash", avatar_url="https://upload.wikimedia.org/wikipedia/en/3/35/Geometry_Dash_Logo.PNG")
         
 
 async def get_demon_list(limit : int = 10) -> dict:
@@ -450,18 +450,20 @@ async def music(interaction : discord.Interaction, id : int):
     except:
         await interaction.response.send_message("Invalid song ID.", ephemeral=True)
     link = music.download_url
-    await interaction.response.send_message("Downloading {0} from Newgrounds...".format(music.name))
+    await interaction.response.send_message("Downloading {0} from Newgrounds...".format(music.name), ephemeral=True)
     d = requests.get(link)
     print(link)
     with open("music/{0}.mp3".format(id), "wb") as f:
         f.write(d.content)
     cv = await channel.connect()
-    await interaction.followup.send("Joined voice channel! Controls:", view=MusicBtns())
+    await interaction.followup.send("Joined voice channel! Controls:", view=MusicBtns(), ephemeral=True)
 
     cv.play(discord.FFmpegPCMAudio("music/{0}.mp3".format(id)))
     cv.is_playing()
 
     while cv.is_playing():
+        if len(channel.members) < 2:
+            await cv.disconnect()
         await asyncio.sleep(1)
     await cv.disconnect()
     for x in os.listdir("music/"):
