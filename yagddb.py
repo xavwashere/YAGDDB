@@ -23,6 +23,45 @@ client = discord.Client(intents=i)
 t = app_commands.CommandTree(client)
 gd_client = gd.Client()
 
+class RateWebhookModal(discord.ui.Modal, title="Add a rate webhook."):
+    webhook_url = discord.ui.TextInput(label="Webhook URL")
+
+    async def on_submit(self, interaction):
+
+        self.webhook_url = str(self.webhook_url)
+
+        try:
+            webhook = discord.Webhook.from_url(self.webhook_url, client=client)
+            await webhook.send("This channel has been configured to recieve rate notifications.", username="Geometry Dash", avatar_url="https://upload.wikimedia.org/wikipedia/en/3/35/Geometry_Dash_Logo.PNG")
+            await interaction.response.send_message("Setup completed successfully!", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"Error setting up: {e}", ephemeral=True)
+            return
+
+        with open("yagddb/webhooks.txt", "a") as txt:
+            txt.write("\n{0}".format(self.webhook_url))
+
+
+class SettingsBtns(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+    @discord.ui.button(label="Rate Webhook", style=discord.ButtonStyle.blurple, emoji=discord.PartialEmoji(name="Star", id=1166360223859101737))
+    async def rate_webhook(self, interaction : discord.Interaction, button):
+
+        await interaction.response.send_modal(RateWebhookModal())
+
+@gd_client.event
+async def on_rate(level : gd.Level):
+    webhooks = []
+    with open("yagddb/webhooks.txt", 'r') as txt:
+        p = str.split(txt.read(), "\n")
+        webhooks.append(p for x in p)
+    for x in webhooks:
+        w = discord.Webhook.from_url(x)
+        w.send(content="New daily level!", embed=create_level_embed(level), username="Geometry Dash", avatar_url="https://upload.wikimedia.org/wikipedia/en/3/35/Geometry_Dash_Logo.PNG")
+        
+
 async def get_demon_list(limit : int = 10) -> dict:
     pointercrate = "https://pointercrate.com/api/v2/"
     params = "listed/?limit={0}".format(limit)
@@ -39,21 +78,64 @@ async def get_player_list(limit : int = 10) -> dict:
     # r = json.loads(res)
     return res
 
-def create_level_embed(level : gd.Level) -> discord.Embed:
+def create_level_embed(level : gd.Level, extra_info : dict or None = {"title": "Level: ", "thumbnail": None}) -> discord.Embed:
     ld_name = str.replace(level.difficulty.name, '_', ' ').lower().split()
     ld_name = list(map(str.capitalize, ld_name))
     ld_name = "{0} {1}".format(ld_name[0], ld_name[1]) if len(ld_name) > 1 else ld_name[0]
 
+    if extra_info["title"] != "Weekly: " or extra_info["title"] != "Daily: " or extra_info["title"] != "Level: ":
+        extra_info["title"] = "Level: "
+
     song_author = level.song.artist
 
+    coins = ""
+
+    for x in range(1, level.coins + 1):
+        if level.verified_coins:
+            coins += "<:Silver_Coin:1166362296159834202> "
+        else:
+            coins += "<:UnverifiedUserCoin:1170324905829597264> "
+    
+    if coins == "":
+        coins = "None"
+
+    extra_info["title"] += "{0} by {1}".format(level.name, level.creator.name)
+
+    like_type = ""
+
+    if level.rating >= 0:
+        like_type = "<:Like:1170329567844638761>"
+    else:
+        like_type = "<:Dislike:1170330583101087764>"
+    
+    length = str(level.length).removeprefix("LevelLength.").lower().capitalize()
+    if length == "Xl":
+        length = length.upper()
+
+    copyable = "No"
+    if level.is_copyable() == True:
+        if level.password is not None:
+            copyable = "Yes, password is {0}".format(level.password)
+        else:
+            copyable = "Yes"
+    
+    gameplay_type = "One-Player"
+    if level.two_player:
+        gameplay_type = "Two-Player"
+
+    
+
     e = (
-        discord.Embed(colour=0xFF1E27)
-        .add_field(name="Name", value=level.name)
-        .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(level.stars, ld_name))
-        .add_field(name="Stats", value="<:Share:1166362299179745422>: {0}\n<:Fake_Spike:1169611005098205204>: {1}".format(level.downloads, level.object_count), inline=False)
-        .add_field(name="Song", value="{0} by {1} ([Link]({2}))".format(level.song.name, song_author, level.song.url), inline=False)
+        discord.Embed(colour=0xFF1E27, title=extra_info["title"])
+        .add_field(name="", value="**Description**: {0}\n\n**Coins**: {1}".format(level.description, coins))
+        .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(level.stars, ld_name), inline=False)
+        .add_field(name="Stats", value="<:Share:1166362299179745422> {0}\n{1} {2}\n<:Fake_Spike:1169611005098205204> {3}\n<:Length:1170332753066197032>  {4}".format(level.downloads, like_type, level.rating, level.object_count, length), inline=False)
+        .add_field(name="Song", value="{0} by {1} ({2} MB)\n<:Play:1170315572261703830> [{3} on Newgrounds]({4})\n<:Download:1170329573448220802> [Download {5} as MP3]({6})".format(level.song.name, song_author, level.song.size, level.song.name, level.song.url, level.song.name, level.song.download_url), inline=False)
+        .add_field(name="Other Stats", value="ID: {0}\nCopyable: {1}\nGameplay Type: {2}".format(level.id, copyable, gameplay_type))
         .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text="{0}".format(level.creator.name))
     )
+    if extra_info["thumbnail"] is not None:
+        e.set_thumbnail(url=extra_info["thumbnail"])
 
     return e
 
@@ -106,7 +188,7 @@ search_group = app_commands.Group(name="search", description="Search for somethi
 # uwu
 @t.command(name="ping")
 async def ping(interaction):
-    await interaction.response.send_message("pong uwu")
+    await interaction.response.send_message(":ping_pong: Pong! GD server responded in {0}s. The bot responded in {1} seconds.".format(await gd_client.ping(), round(client.latency, 3)))
 
 # function that implements the daily command
 @t.command(name="daily", description="Gets the current daily level.",)
@@ -117,7 +199,7 @@ async def daily(interaction):
     except:
         return await interaction.response.send_message("Daily level not found.")
     
-    e = create_level_embed(d)
+    e = create_level_embed(d, {"title": "Daily: ", "thumbnail": "https://images-ext-2.discordapp.net/external/WmbQOWwJgceD7Ag9QF07ZYU_q6-fSdbsDRpnCBROk3c/https/i.imgur.com/enpYuB8.png"})
 
     await interaction.response.send_message(embed=e)
 
@@ -129,7 +211,7 @@ async def weekly(interaction):
     except:
         return await interaction.response.send_message("Weekly level not found.")
     
-    e = create_level_embed(w)
+    e = create_level_embed(w, {"title": "Weekly: ", "thumbnail": "https://images-ext-2.discordapp.net/external/-V-AYSPiOoLwoowRlUWtlDAFJx7N4xyVqpZuKuFMitM/https/i.imgur.com/kcsP5SN.png"})
 
     await interaction.response.send_message(embed=e)
 
@@ -178,15 +260,34 @@ async def search_user(interaction, user : str):
     else:
         name = "User has no levels"
         id = "N/A"
+    
+    youtube = search.socials.youtube
+    twitter = search.socials.twitter
+    twitch = search.socials.twitch
 
+    if youtube is None:
+        youtube = "None"
+    else:
+        youtube = "https://youtube.com/{0}".format(youtube)
+        youtube = "[YouTube]({0})".format(youtube)
+    if twitter is None:
+        twitter = "None"
+    else:
+        twitter = "https://twitter.com/{0}".format(twitter)
+        twitter = "[Twitter]({0})".format(twitter)
+    if twitch is None:
+        twitch = "None"
+    else:
+        twitch = "https://twitch.tv/{0}".format(twitch)
+        twitch = "[Twitch]({0})".format(twitch)
 
 
     e = (
         discord.Embed(colour=0x00C9FF)
-        .add_field(name="Name", value="{0} (ID: {1})".format(username, search.account_id), inline=False)
-        .add_field(name="Stats", value="<:Star:1166360223859101737>: {0}\n<:Diamond:1166362286496153690>: {1}\n<:Demon:1169589936505229312>: {2}\n<:Secret_Coin:1166362293660025064>: {3}\n<:Silver_Coin:1166362296159834202>: {4}\n<:Creator_Point:1169589714110644295>: {5}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points), inline=False)
+        .add_field(name="Name", value="{0} (ID: {1} | Account ID: {2})".format(username, search.id, search.account_id), inline=False)
+        .add_field(name="Stats", value="<:Star:1166360223859101737> {0}\n<:Diamond:1166362286496153690> {1}\n<:Demon:1169589936505229312> {2}\n<:Secret_Coin:1166362293660025064> {3}\n<:Silver_Coin:1166362296159834202> {4}\n<:Creator_Point:1169589714110644295> {5}\n<:Rank:1170362250570236004> {6}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points, stats.rank), inline=False)
+        .add_field(name="Socials", value="<:YouTube:1170315574803451904> {0}\n<:Twitter:1170315580205699112> {1}\n<:Twitch:1170315578964193280> {2}".format(youtube, twitter, twitch))
         .add_field(name="Most Recent Level", value="{0} ({1})".format(name, id), inline=False)
-
     )
     await interaction.followup.send(embed=e)
 
@@ -197,16 +298,17 @@ async def search_level(interaction, level : str):
     except:
         await interaction.response.send_message("There was an issue finding the level.")
     
+    await interaction.response.defer()
+    await asyncio.sleep(0)
+    
     if search:
         level = search[0]
-        await interaction.response.defer()
-        await asyncio.sleep(0)
 
         e = create_level_embed(level)
 
         await interaction.followup.send(embed=e)
     else:
-        await interaction.response.send_message("Level not found.")
+        await interaction.followup.send("Level not found.")
     
 @t.command(name="checkmod", description="Check if someone has moderator permissions")
 async def check_mod(interaction, username : str):
@@ -292,8 +394,20 @@ async def playerlist(interaction):
         e.add_field(name="{0}. {1}".format(pos["rank"], pos["name"]), value="Points: {0}\nNationality: {1} ({2})".format(round(pos["score"]), pos["nationality"]["nation"], pos["nationality"]["country_code"]), inline=False)
     e.add_field(name="JSON", value="[Download JSON](https://pointercrate.com/api/v1/players/ranking?limit=10)")
     await interaction.response.send_message(embed=e)
-    
+
+
+@t.command(name="settings", description="Change the YAGDDB settings (per server)")
+async def settings(interaction):
+    e = (
+        discord.Embed(colour=0x00C9FF, title="Settings")
+        .add_field(name="Rate Webhook", value="Recieve a message through a webhook when a level on Geometry Dash is rated (currently broken)")
+    )
+    await interaction.response.send_message(embed=e, view=SettingsBtns())
+
+
+
 
 t.add_command(search_group)
 client.run(yagddb.config["token"])
-
+gd_client.listen_for_rate()
+gd_client.create_controller().run()
