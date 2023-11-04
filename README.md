@@ -2,7 +2,7 @@
 Yet Another Geometry Dash Discord Bot - Interact with the GD servers through Discord!
 
 # Info
-YAGDDB is a Discord bot used for interacting with the Geometry Dash servers. YAGDDB is powered by [gd.py](https://github.com/nekitdev/gd.py).
+YAGDDB is a Discord bot used for interfacing with the Geometry Dash servers. YAGDDB is powered by [gd.py](https://github.com/nekitdev/gd.py).
 
 YAGDDB has a couple of cool features:
 - Searching for levels
@@ -21,6 +21,7 @@ YAGDDB has a couple of cool features:
 - /demonlist - Shows the top 10 levels on the Demonlist (https://pointercrate.com).
 - /leaderboard - Shows the top 10 players on the Demonlist leaderboard (https://pointercrate.com)
 - /checkmod <name> - Checks the specified user's moderator status.
+- /settings - Allows you to change the settings of the bot, as well as add a webhook that is triggered when a level is rated (currently broken)
 
 # Running
 
