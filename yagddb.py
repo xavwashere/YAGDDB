@@ -52,6 +52,20 @@ class SettingsBtns(discord.ui.View):
 
         await interaction.response.send_modal(RateWebhookModal())
 
+class MusicBtns(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+    
+    @discord.ui.button(label="End", style=discord.ButtonStyle.blurple)
+    async def end_music(self, interaction : discord.Interaction, button):
+        guild = interaction.guild
+        vc = discord.utils.get(client.voice_clients, guild=guild)
+        if vc.is_connected():
+            await vc.disconnect()
+            for x in os.listdir("music/"):
+                p = os.path.join("music/", x)
+                os.remove(p)
+
 @gd_client.event
 async def on_rate(level : gd.Level):
     webhooks = []
@@ -424,7 +438,36 @@ async def settings(interaction):
     await interaction.response.send_message(embed=e, view=SettingsBtns())
 
 
+@t.command(name="music", description="Play a song from Newgrounds.")
+async def music(interaction : discord.Interaction, id : int):
+    try:
+        channel = interaction.user.voice.channel
+    except:
+        await interaction.response.send_message("You are not in a voice channel! Join one before continuing!")
+    try:
+        music = await gd_client.get_song(id)
+    except:
+        await interaction.response.send_message("Invalid song ID.", ephemeral=True)
+    link = music.download_url
+    cv = await channel.connect()
+    await interaction.response.send_message("Joined voice channel! Controls:", view=MusicBtns())
 
+    d = requests.get(link)
+    print(link)
+    with open("music/{0}.mp3".format(id), "wb") as f:
+        f.write(d.content)
+    
+
+
+    cv.play(discord.FFmpegPCMAudio("music/{0}.mp3".format(id)))
+    cv.is_playing()
+
+    while cv.is_playing():
+        await asyncio.sleep(1)
+    await cv.disconnect()
+    for x in os.listdir("music/"):
+        p = os.path.join("music/", x)
+        os.remove(p)
 
 t.add_command(search_group)
 client.run(yagddb.config["token"])
