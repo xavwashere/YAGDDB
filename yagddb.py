@@ -14,6 +14,7 @@ import random
 import time
 import asyncio
 import requests
+import os
 # get the starting time
 start = time.perf_counter()
 
@@ -113,11 +114,14 @@ def create_level_embed(level : gd.Level, extra_info : dict or None = {"title": "
         length = length.upper()
 
     copyable = "No"
-    if level.is_copyable() == True:
-        if level.password is not None:
-            copyable = "Yes, password is {0}".format(level.password)
-        else:
-            copyable = "Yes"
+    if level.is_copyable():
+        copyable = "Yes"
+    
+    copied = "No"
+    
+    if level.original_id != 0:
+        copied = "Yes. Original ID: {0}".format(level.original_id)
+
     
     gameplay_type = "One-Player"
     if level.two_player:
@@ -131,7 +135,7 @@ def create_level_embed(level : gd.Level, extra_info : dict or None = {"title": "
         .add_field(name="Rating", value="{0}<:Star:1166360223859101737> ({1})".format(level.stars, ld_name), inline=False)
         .add_field(name="Stats", value="<:Share:1166362299179745422> {0}\n{1} {2}\n<:Fake_Spike:1169611005098205204> {3}\n<:Length:1170332753066197032>  {4}".format(level.downloads, like_type, level.rating, level.object_count, length), inline=False)
         .add_field(name="Song", value="{0} by {1} ({2} MB)\n<:Play:1170315572261703830> [{3} on Newgrounds]({4})\n<:Download:1170329573448220802> [Download {5} as MP3]({6})".format(level.song.name, song_author, level.song.size, level.song.name, level.song.url, level.song.name, level.song.download_url), inline=False)
-        .add_field(name="Other Stats", value="ID: {0}\nCopyable: {1}\nGameplay Type: {2}".format(level.id, copyable, gameplay_type))
+        .add_field(name="Other Stats", value="ID: {0}\nCopyable: {1}\nGameplay Type: {2}\nCopied: {3}".format(level.id, copyable, gameplay_type, copied))
         .set_footer(icon_url="https://preview.redd.it/putting-my-geometry-dash-creator-points-image-here-so-v0-sgfl38xxycta1.png?width=640&crop=smart&auto=webp&s=817ca45d6616a201980b7be4fd980ec53e26f721", text="{0}".format(level.creator.name))
     )
     if extra_info["thumbnail"] is not None:
@@ -265,6 +269,13 @@ async def search_user(interaction, user : str):
     twitter = search.socials.twitter
     twitch = search.socials.twitch
 
+    if not os.path.exists("icons/{0}{1}.png".format(search.id, search.name)):
+        icons = await search.cosmetics.generate_full_async()
+        icons.save("icons/{0}{1}.png".format(search.id, search.name))
+        
+    d_icons = discord.File("icons/{0}{1}.png".format(search.id, search.name), filename="{0}{1}.png".format(search.id, search.name))
+    
+
     if youtube is None:
         youtube = "None"
     else:
@@ -281,15 +292,23 @@ async def search_user(interaction, user : str):
         twitch = "https://twitch.tv/{0}".format(twitch)
         twitch = "[Twitch]({0})".format(twitch)
 
+    rank = stats.rank
+    if rank == 0:
+        rank = "Unranked"
 
     e = (
         discord.Embed(colour=0x00C9FF)
         .add_field(name="Name", value="{0} (ID: {1} | Account ID: {2})".format(username, search.id, search.account_id), inline=False)
-        .add_field(name="Stats", value="<:Star:1166360223859101737> {0}\n<:Diamond:1166362286496153690> {1}\n<:Demon:1169589936505229312> {2}\n<:Secret_Coin:1166362293660025064> {3}\n<:Silver_Coin:1166362296159834202> {4}\n<:Creator_Point:1169589714110644295> {5}\n<:Rank:1170362250570236004> {6}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points, stats.rank), inline=False)
+        .add_field(name="Stats", value="<:Star:1166360223859101737> {0}\n<:Diamond:1166362286496153690> {1}\n<:Demon:1169589936505229312> {2}\n<:Secret_Coin:1166362293660025064> {3}\n<:Silver_Coin:1166362296159834202> {4}\n<:Creator_Point:1169589714110644295> {5}\n<:Rank:1170362250570236004> {6}".format(stats.stars, stats.diamonds, stats.demons, stats.secret_coins, stats.user_coins, stats.creator_points, rank), inline=False)
         .add_field(name="Socials", value="<:YouTube:1170315574803451904> {0}\n<:Twitter:1170315580205699112> {1}\n<:Twitch:1170315578964193280> {2}".format(youtube, twitter, twitch))
         .add_field(name="Most Recent Level", value="{0} ({1})".format(name, id), inline=False)
+        .set_image(url="attachment://{0}{1}.png".format(search.id, search.name))
     )
-    await interaction.followup.send(embed=e)
+    await interaction.followup.send(embed=e, file=d_icons)
+    icons = os.listdir("icons/")
+    for x in icons:
+        p = os.path.join("icons/", x)
+        os.remove(p)
 
 @search_group.command(name="level", description="Search for a level")
 async def search_level(interaction, level : str):

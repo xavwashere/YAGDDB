@@ -4,3 +4,4 @@ yagddb/__pycache__
 yagddb/json/*
 test.py
 yagddb/webhooks.txt
+icons/*
