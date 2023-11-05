@@ -388,9 +388,9 @@ async def check_mod(interaction, username : str):
         await interaction.response.send_message("No user chosen. Please choose a user to check before running this command")
         return
     
-    user = await gd_client.search_user(username)
-
-    if not user:
+    try:
+        user = await gd_client.search_user(username)
+    except:
         await interaction.response.send_message("Invalid user.")
         return
     
@@ -505,20 +505,22 @@ async def music(interaction : discord.Interaction, id : int):
         await asyncio.sleep(1)
     await cv.disconnect()
 
-# @t.command(name="randomlevel", description="Get a random level with the specified difficulty.")
+@t.command(name="randomlevel", description="Get a random level with the specified difficulty.")
 
-# async def random_level(interaction, difficulty: Literal["Auto", "Easy", "Normal", "Hard", "Harder", "Insane", "Easy Demon", "Medium Demon", "Hard Demon", "Insane Demon", "Extreme Demon"]):
-#     await interaction.response.defer()
-#     await asyncio.sleep(0.1)
-#     enum_friendly = difficulty.upper().replace(" ", "_")
-#     diff = gd.Difficulty[enum_friendly]
-#     _filter = gd.Filters(difficulties=[diff])
-#     search = await gd_client.search_levels(filters=_filter, pages=range(1, 10))
-#     await interaction.followup.send("Error getting random level: {0}".format(e))
-#     seed = random.randint(1, 10)
-#     level = search[seed]
-#     e = create_level_embed(level, {"title": "Random Level: ", "thumbnail": None})
-#     await interaction.followup.send(embed=e)
+async def random_level(interaction, difficulty: Literal["Auto", "Easy", "Normal", "Hard", "Harder", "Insane", "Easy Demon", "Medium Demon", "Hard Demon", "Insane Demon", "Extreme Demon"]):
+    await interaction.response.defer()
+    await asyncio.sleep(0.1)
+    enum_friendly = difficulty.upper().replace(" ", "_")
+    diff = gd.Difficulty[enum_friendly]
+    _filter = gd.Filters(difficulties=[diff])
+    try:
+        search = await gd_client.search_levels(filters=_filter, pages=range(1, 10))
+    except:
+        await interaction.followup.send("Error getting random level: {0}".format(e))
+    seed = random.randint(1, 10)
+    level = search[seed]
+    e = create_level_embed(level, {"title": "Random Level: ", "thumbnail": None})
+    await interaction.followup.send(embed=e)
 
 
 t.add_command(search_group)
