@@ -15,6 +15,8 @@ import time
 import asyncio
 import requests
 import os
+from typing import Literal
+import httpx
 # get the starting time
 start = time.perf_counter()
 
@@ -90,11 +92,10 @@ class MusicBtns(discord.ui.View):
             await interaction.response.send_message("The bot isn't playing music right now!")
 @gd_client.event
 async def on_rate(level : gd.Level):
-    webhooks = []
+    p = []
     with open("yagddb/webhooks.txt", 'r') as txt:
         p = str.split(txt.read(), "\n")
-        webhooks.append(p for x in p)
-    for x in webhooks:
+    for x in p:
         w = discord.Webhook.from_url(x)
         w.send(content="New rated level!", embed=create_level_embed(level), username="Geometry Dash", avatar_url="https://upload.wikimedia.org/wikipedia/en/3/35/Geometry_Dash_Logo.PNG")
         
@@ -268,9 +269,6 @@ async def search_user(interaction, user : str):
     await asyncio.sleep(0)
 
     username = search.name
-
-    is_mod = False
-    is_elder = False
 
     acc_id = search.account_id
 
@@ -487,16 +485,18 @@ async def music(interaction : discord.Interaction, id : int):
         music = await gd_client.get_song(id)
     except:
         await interaction.response.send_message("Invalid song ID.", ephemeral=True)
-    link = music.download_url
+    link = str(music.download_url)
     await interaction.response.send_message("Downloading {0} from Newgrounds...".format(music.name), ephemeral=True)
-    d = requests.get(link)
+    async with httpx.AsyncClient() as ac:
+        d = await ac.get(link)
+    
     print(link)
-    with open("music/{0}.mp3".format(id), "wb") as f:
+    with open("music/{0}{1}.mp3".format(id, interaction.guild.id), "wb") as f:
         f.write(d.content)
     cv = await channel.connect()
     await interaction.followup.send("Joined voice channel! Controls:", view=MusicBtns(), ephemeral=True)
 
-    cv.play(discord.FFmpegPCMAudio("music/{0}.mp3".format(id)))
+    cv.play(discord.FFmpegPCMAudio("music/{0}{1}.mp3".format(id, interaction.guild.id)))
     cv.is_playing()
 
     while cv.is_connected():
@@ -504,7 +504,22 @@ async def music(interaction : discord.Interaction, id : int):
             await cv.disconnect()
         await asyncio.sleep(1)
     await cv.disconnect()
-    
+
+# @t.command(name="randomlevel", description="Get a random level with the specified difficulty.")
+
+# async def random_level(interaction, difficulty: Literal["Auto", "Easy", "Normal", "Hard", "Harder", "Insane", "Easy Demon", "Medium Demon", "Hard Demon", "Insane Demon", "Extreme Demon"]):
+#     await interaction.response.defer()
+#     await asyncio.sleep(0.1)
+#     enum_friendly = difficulty.upper().replace(" ", "_")
+#     diff = gd.Difficulty[enum_friendly]
+#     _filter = gd.Filters(difficulties=[diff])
+#     search = await gd_client.search_levels(filters=_filter, pages=range(1, 10))
+#     await interaction.followup.send("Error getting random level: {0}".format(e))
+#     seed = random.randint(1, 10)
+#     level = search[seed]
+#     e = create_level_embed(level, {"title": "Random Level: ", "thumbnail": None})
+#     await interaction.followup.send(embed=e)
+
 
 t.add_command(search_group)
 try:
