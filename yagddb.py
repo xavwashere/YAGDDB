@@ -17,6 +17,7 @@ import requests
 import os
 from typing import Literal
 import httpx
+from typing import Union
 # get the starting time
 start = time.perf_counter()
 
@@ -116,7 +117,7 @@ async def get_player_list(limit : int = 10) -> dict:
     # r = json.loads(res)
     return res
 
-def create_level_embed(level : gd.Level, extra_info : dict or None = {"title": "Level: ", "thumbnail": None}) -> discord.Embed:
+def create_level_embed(level : gd.Level, extra_info : Union[dict, None] = {"title": "Level: ", "thumbnail": None}) -> discord.Embed:
     ld_name = str.replace(level.difficulty.name, '_', ' ').lower().split()
     ld_name = list(map(str.capitalize, ld_name))
     ld_name = "{0} {1}".format(ld_name[0], ld_name[1]) if len(ld_name) > 1 else ld_name[0]
