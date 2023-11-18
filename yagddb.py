@@ -94,14 +94,14 @@ class MusicBtns(discord.ui.View):
             await interaction.response.send_message("Disconnected from VC.", ephemeral=True)
         else:
             await interaction.response.send_message("The bot isn't playing music right now!", ephemeral=True)
-@gd_client.event
-async def on_rate(level : gd.Level):
-    p = []
-    with open("yagddb/webhooks.txt", 'r') as txt:
-        p = str.split(txt.read(), "\n")
-    for x in p:
-        w = discord.Webhook.from_url(x)
-        w.send(content="New rated level!", embed=create_level_embed(level), username="Geometry Dash", avatar_url="https://upload.wikimedia.org/wikipedia/en/3/35/Geometry_Dash_Logo.PNG")
+# @gd_client.event
+# async def on_rate(level : gd.Level):
+#     p = []
+#     with open("yagddb/webhooks.txt", 'r') as txt:
+#         p = str.split(txt.read(), "\n")
+#     for x in p:
+#         w = discord.Webhook.from_url(x)
+#         w.send(content="New rated level!", embed=create_level_embed(level), username="Geometry Dash", avatar_url="https://upload.wikimedia.org/wikipedia/en/3/35/Geometry_Dash_Logo.PNG")
         
 async def _get_media(interaction : discord.Interaction, message : discord.Message):
     user = message.author
@@ -127,7 +127,9 @@ async def get_demon_list(limit : int = 10) -> dict:
     pointercrate = "https://pointercrate.com/api/v2/"
     params = "listed/?limit={0}".format(limit)
 
-    res = requests.get("{0}demons/{1}".format(pointercrate, params)).json()
+    async with httpx.AsyncClient() as ac:
+        res = await ac.get("{0}demons/{1}".format(pointercrate, params))
+        res = res.json()
     # r = json.loads(res)
     return res
 
@@ -135,12 +137,15 @@ async def get_player_list(limit : int = 10) -> dict:
     pointercrate = "https://pointercrate.com/api/v1/"
     params = "?limit={0}".format(limit)
 
-    res = requests.get("{0}players/ranking/{1}".format(pointercrate, params)).json()
-    # r = json.loads(res)
+    async with httpx.AsyncClient() as ac:
+        res = await ac.get("{0}players/ranking/{1}".format(pointercrate, params))
+        res = res.json()
     return res
 
-def get_amount_of_players():
-    res = requests.get("https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=322170").json()
+async def get_amount_of_players():
+    async with httpx.AsyncClient() as ac:
+        res = await ac.get("https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=322170")
+        res = res.json()
     if res["response"]["result"] != 1:
         return (
             discord.Embed(colour=0xC9FF, title="Current amount of people playing Geometry Dash on Steam")
@@ -265,6 +270,7 @@ async def on_ready():
     # print success and start presence
     print("SUCCESS: Connected to Discord API and synced commands in {0} seconds".format(perf))
 
+    # guard to stop presence from starting if already started (if the bot was ratelimited and reconnects)
     if not change_presence.is_running():
         change_presence.start()
 
@@ -273,9 +279,10 @@ async def get_owner(guild_id : int) -> discord.Member:
     guild = client.get_guild(guild_id)
     return guild.owner
 
-search_group = app_commands.Group(name="search", description="Search for something (users or levels)")
-music_group = app_commands.Group(name="music", description="Play music from YouTube or Newgrounds")
+search_group = app_commands.Group(name="search", description="Search for something (users or levels).")
+music_group = app_commands.Group(name="music", description="Play music from YouTube or Newgrounds.")
 server_group = app_commands.Group(name="server", description="Commands related to the current Discord server.")
+modding_group = app_commands.Group(name="modding", description="Commands useful for GD modding.")
 
 # uwu
 @t.command(name="ping")
@@ -290,7 +297,8 @@ async def daily(interaction):
         d = await gd_client.get_daily()
     except:
         return await interaction.response.send_message("Daily level not found.")
-    
+
+    # create level embed using create_level_embed()
     e = create_level_embed(d, {"title": "Daily: ", "thumbnail": "https://images-ext-2.discordapp.net/external/WmbQOWwJgceD7Ag9QF07ZYU_q6-fSdbsDRpnCBROk3c/https/i.imgur.com/enpYuB8.png"})
 
     await interaction.response.send_message(embed=e)
@@ -639,7 +647,15 @@ async def members(interaction):
 
 @t.command(name="currentplayers", description="Get the current number of people playing Geometry Dash on Steam")
 async def current_players(interaction):
-    await interaction.response.send_message(embed=get_amount_of_players())
+    await interaction.response.send_message(embed=await get_amount_of_players())
+
+@modding_group.command(name="encoding", description="Encode a string to a different encoding.")
+async def encoding(interaction, input : str, encode_to : Literal["utf-8", "utf-16", "iso-8859-1", "ascii"]):
+    encoded = input.encode(encode_to, "replace")
+    decoded = encoded.decode(encode_to)
+    await interaction.response.send_message(decoded)
+    
+    
 
 get_media = app_commands.ContextMenu(
     name="Get Media from Message",
@@ -650,11 +666,12 @@ t.add_command(get_media)
 t.add_command(search_group)
 t.add_command(music_group)
 t.add_command(server_group)
+t.add_command(modding_group)
 try:
+    # gd_client.listen_for_rate()
+    # gd_client.create_controller().run()
     client.run(yagddb.config["token"])
 finally:
     for x in os.listdir("music/"):
         p = os.path.join("music/", x)
         os.remove(p)
-gd_client.listen_for_rate()
-gd_client.create_controller().run()
